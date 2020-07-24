@@ -32,7 +32,6 @@ int main(void)
         glVertex2f(0.5f, -0.5f);
         glEnd();
 
-
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
