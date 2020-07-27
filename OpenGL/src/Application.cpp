@@ -140,6 +140,11 @@ int main(void)
     /* Initialize the library */
     if (!glfwInit())
         return -1;
+
+    //// Changes OpenGL to 3.3 Core, which requires you to create a vao
+    //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); 
+    //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
     /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(640, 480, "OpenGL Practice", NULL, NULL);
@@ -180,25 +185,25 @@ int main(void)
         0, 1, 2,
         2, 3, 0
     };
-    
+
+    //// Vertex Array Objects ////
+ 
+    unsigned int vao;
+    GLCall(glGenVertexArrays(1, &vao));
+    GLCall(glBindVertexArray(vao));
 
     //// Vertex Buffer ////
 
-    // Generate
+    // Generate, bind, set data, set layout
     unsigned int vertexBufferID;
     GLCall(glGenBuffers(1, &vertexBufferID));
-
-    // Bind
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID));
-
-    // Set Data 
-    GLCall(glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), vertexBufferData, GL_STATIC_DRAW));
-    
-    // Set Layout
-    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0)); // Index of attribute, numb of vars in the attribute, type, normalize, size of vertex, (const void)* to attribute in vertex
+    GLCall(glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), vertexBufferData, GL_STATIC_DRAW));
+    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0)); // Links the currently bound vao and vertex buffer
     GLCall(glEnableVertexAttribArray(0));
 
     //// Index Buffer ////
+
     // Gen, bind, set data
     unsigned int ibo;
     GLCall(glGenBuffers(1, &ibo));
@@ -210,19 +215,23 @@ int main(void)
     unsigned int shader = CreateShader(shaderSource.VertexSource, shaderSource.FragmentSource);
     GLCall(glUseProgram(shader));
 
-
     //// Uniforms ////
     GLCall(int location = glGetUniformLocation(shader, "u_Color"));
     ASSERT(location != -1);
 
-    // Undbind buffer
+    // Undbind everything
+    GLCall(glUseProgram(0));
+    GLCall(glBindVertexArray(0));
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+    
+
+    ////////////////// Main Loop ///////////////////
 
     // Color Animator
     float r = 0.0f;
     float increment = 0.05f;
 
-    ////////////////// Main Loop ///////////////////
     while (!glfwWindowShouldClose(window))
     {
         // Clear
@@ -230,7 +239,15 @@ int main(void)
 
         //////// Draw Stuff Here ////////////////////////
 
+        // Bind Shader
+        GLCall(glUseProgram(shader));
         GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+
+        // Bind VAO
+        GLCall(glBindVertexArray(vao));
+        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+
+        // Draw
         GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
 
         if (r > 1.0f)
