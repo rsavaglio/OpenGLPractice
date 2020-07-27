@@ -2,6 +2,54 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+
+struct ShaderProgramSoucre
+{
+    std::string VertexSource;
+    std::string FragmentSource;
+};
+
+static ShaderProgramSoucre ParseShader(const std::string& filepath)
+{
+    // Open file
+    std::ifstream stream(filepath);
+
+    // Define Type
+    enum class ShaderType
+    {
+        NONE = -1, VERTEX = 0, FRAGMENT = 1
+    };
+    ShaderType type = ShaderType::NONE;
+
+    // Line and string stream variables for parsing
+    std::string line;
+    std::stringstream ss[2];
+
+    // Parse file, if the line contains "#shader type" change the type
+    // Otherwise add the line to the correct string stream
+    while (getline(stream, line))
+    {
+        if (line.find("#shader") != std::string::npos)
+        {
+            if (line.find("vertex") != std::string::npos)
+                type = ShaderType::VERTEX;
+            else if (line.find("fragment") != std::string::npos)
+                type = ShaderType::FRAGMENT;
+        }
+        else
+        {
+            // Using the enum type as an index instead of branching
+            ss[(int)type] << line << '\n';
+        }
+    }
+
+    // Return the struct using the string stream array
+    return { ss[0].str(), ss[1].str() };
+
+}
 
 static unsigned int CompileShader(unsigned int type, const std::string& source)
 {
@@ -114,31 +162,9 @@ int main(void)
     glEnableVertexAttribArray(0);
 
     // Shaders
-    std::string vertexSrc = R"( 
-			#version 330 core
-			
-			layout(location = 0) in vec4 position;
-
-			void main()
-			{
-				gl_Position = position;
-			}
-		)";
-
-    std::string fragmentSrc = R"( 
-			#version 330 core
-			
-			layout(location = 0) out vec4 color;
-
-			void main()
-			{
-				color = vec4(1.0, 0.0, 0.0, 1.0);
-			}
-		)";
-
-    unsigned int shader = CreateShader(vertexSrc, fragmentSrc);
+    ShaderProgramSoucre shaderSource = ParseShader("res/shaders/BasicShader.Shader");
+    unsigned int shader = CreateShader(shaderSource.VertexSource, shaderSource.FragmentSource);
     glUseProgram(shader);
-
 
     // Undbind buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -155,8 +181,6 @@ int main(void)
         //////// Draw Stuff Here /////////////////////////////////////////
 
         glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        
         
         //////////////////////////////////////////////////////////////////
 
