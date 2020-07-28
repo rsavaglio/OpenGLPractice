@@ -6,32 +6,12 @@
 #include <string>
 #include <sstream>
 
+#include "Renderer.h"
+#include "IndexBuffer.h"
+#include "VertexBuffer.h"
+
 // Best Documentation: http://docs.gl
 
-//// Error Checking ////
-
-#define ASSERT(x) if (!(x)) __debugbreak();
-#define GLCall(x) GLClearError();\
-    x;\
-    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
-
-static void GLClearError()
-{
-    while (glGetError() != GL_NO_ERROR);
-}
-
-static bool GLLogCall(const char* function, const char* file, int line)
-{
-    while (GLenum error = glGetError()) // while error is not 0
-    {
-        std::cout << "[OpenGL Error] (" << error << "): " <<
-            function << " " <<
-            file << ":" <<
-            line << std::endl;
-        return false;
-    }
-    return true;
-}
 
 //// Shader Functions ////
 
@@ -172,101 +152,95 @@ int main(void)
     /////////////////////////////////////////////////
 
     // Buffer data
-
-    float vertexBufferData[] = 
     {
-        -0.5f, -0.5f,
-         0.5f, -0.5f,
-         0.5f,  0.5f,
-        -0.5f, 0.5f,
-    };
+        float vertexBufferData[] =
+        {
+            -0.5f, -0.5f,
+             0.5f, -0.5f,
+             0.5f,  0.5f,
+            -0.5f, 0.5f,
+        };
 
-    unsigned int indexBufferData[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
+        unsigned int indexBufferData[] = {
+            0, 1, 2,
+            2, 3, 0
+        };
 
-    //// Vertex Array Objects ////
- 
-    unsigned int vao;
-    GLCall(glGenVertexArrays(1, &vao));
-    GLCall(glBindVertexArray(vao));
+        //// Vertex Array Objects ////
 
-    //// Vertex Buffer ////
-
-    // Generate, bind, set data, set layout
-    unsigned int vertexBufferID;
-    GLCall(glGenBuffers(1, &vertexBufferID));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID));
-    GLCall(glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), vertexBufferData, GL_STATIC_DRAW));
-    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0)); // Links the currently bound vao and vertex buffer
-    GLCall(glEnableVertexAttribArray(0));
-
-    //// Index Buffer ////
-
-    // Gen, bind, set data
-    unsigned int ibo;
-    GLCall(glGenBuffers(1, &ibo));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indexBufferData, GL_STATIC_DRAW));
-
-    //// Shaders ////
-    ShaderProgramSoucre shaderSource = ParseShader("res/shaders/BasicShader.Shader");
-    unsigned int shader = CreateShader(shaderSource.VertexSource, shaderSource.FragmentSource);
-    GLCall(glUseProgram(shader));
-
-    //// Uniforms ////
-    GLCall(int location = glGetUniformLocation(shader, "u_Color"));
-    ASSERT(location != -1);
-
-    // Undbind everything
-    GLCall(glUseProgram(0));
-    GLCall(glBindVertexArray(0));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-    
-
-    ////////////////// Main Loop ///////////////////
-
-    // Color Animator
-    float r = 0.0f;
-    float increment = 0.05f;
-
-    while (!glfwWindowShouldClose(window))
-    {
-        // Clear
-        GLCall(glClear(GL_COLOR_BUFFER_BIT));
-
-        //////// Draw Stuff Here ////////////////////////
-
-        // Bind Shader
-        GLCall(glUseProgram(shader));
-        GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
-
-        // Bind VAO
+        unsigned int vao;
+        GLCall(glGenVertexArrays(1, &vao));
         GLCall(glBindVertexArray(vao));
-        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
 
-        // Draw
-        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+        //// Vertex Buffer ////
+        VertexBuffer vbo(vertexBufferData, 4 * 2 * sizeof(float));
 
-        if (r > 1.0f)
-            increment = -0.05f;
-        else if (r < 0.0f)
-            increment = 0.05f;
+        // Layout
+        GLCall(glEnableVertexAttribArray(0));
+        GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0)); // Links the currently bound vao and vertex buffer
 
-        r += increment;
+        //// Index Buffer ////
+        IndexBuffer ibo(indexBufferData, 6);
 
-        /////////////////////////////////////////////////
+        //// Shaders ////
+        ShaderProgramSoucre shaderSource = ParseShader("res/shaders/BasicShader.Shader");
+        unsigned int shader = CreateShader(shaderSource.VertexSource, shaderSource.FragmentSource);
+        GLCall(glUseProgram(shader));
 
-        // Swap Buffers
-        glfwSwapBuffers(window);
+        //// Uniforms ////
+        GLCall(int location = glGetUniformLocation(shader, "u_Color"));
+        ASSERT(location != -1);
 
-        /* Poll for and process events */
-        glfwPollEvents();
+        // Undbind everything
+        GLCall(glUseProgram(0));
+        GLCall(glBindVertexArray(0));
+        vbo.Unbind();
+        ibo.Unbind();
+
+
+        ////////////////// Main Loop ///////////////////
+
+        // Color Animator
+        float r = 0.0f;
+        float increment = 0.05f;
+
+        while (!glfwWindowShouldClose(window))
+        {
+            // Clear
+            GLCall(glClear(GL_COLOR_BUFFER_BIT));
+
+            //////// Draw Stuff Here ////////////////////////
+
+            // Bind Shader
+            GLCall(glUseProgram(shader));
+            GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+
+            // Bind VAO
+            GLCall(glBindVertexArray(vao));
+            ibo.Bind();
+
+            // Draw
+            GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+
+            if (r > 1.0f)
+                increment = -0.05f;
+            else if (r < 0.0f)
+                increment = 0.05f;
+
+            r += increment;
+
+            /////////////////////////////////////////////////
+
+            // Swap Buffers
+            glfwSwapBuffers(window);
+
+            /* Poll for and process events */
+            glfwPollEvents();
+        }
+
+        GLCall(glDeleteProgram(shader));
+
     }
-
-    glDeleteProgram(shader);
 
     glfwTerminate();
     return 0;
