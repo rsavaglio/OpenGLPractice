@@ -9,9 +9,9 @@
 #include "Renderer.h"
 #include "IndexBuffer.h"
 #include "VertexBuffer.h"
+#include "VertexArray.h"
 
 // Best Documentation: http://docs.gl
-
 
 //// Shader Functions ////
 
@@ -166,18 +166,15 @@ int main(void)
             2, 3, 0
         };
 
-        //// Vertex Array Objects ////
-
-        unsigned int vao;
-        GLCall(glGenVertexArrays(1, &vao));
-        GLCall(glBindVertexArray(vao));
-
-        //// Vertex Buffer ////
+        //// Vertex Array and Buffer Objects ////
         VertexBuffer vbo(vertexBufferData, 4 * 2 * sizeof(float));
+        VertexArray vao;
 
-        // Layout
-        GLCall(glEnableVertexAttribArray(0));
-        GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0)); // Links the currently bound vao and vertex buffer
+        // Each vertex is 2 floats
+        VertexBufferLayout layout;
+        layout.Push<float>(2);
+
+        vao.AddBuffer(vbo, layout);
 
         //// Index Buffer ////
         IndexBuffer ibo(indexBufferData, 6);
@@ -193,7 +190,7 @@ int main(void)
 
         // Undbind everything
         GLCall(glUseProgram(0));
-        GLCall(glBindVertexArray(0));
+        vao.Unbind();
         vbo.Unbind();
         ibo.Unbind();
 
@@ -216,7 +213,7 @@ int main(void)
             GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
 
             // Bind VAO
-            GLCall(glBindVertexArray(vao));
+            vao.Bind();
             ibo.Bind();
 
             // Draw
