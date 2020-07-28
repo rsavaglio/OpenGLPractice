@@ -7,8 +7,9 @@
 #include <sstream>
 
 #include "Renderer.h"
-#include "IndexBuffer.h"
 #include "VertexBuffer.h"
+#include "VertexBufferLayout.h"
+#include "IndexBuffer.h"
 #include "VertexArray.h"
 #include "Shader.h"
 
@@ -95,6 +96,7 @@ int main(void)
         ibo.Unbind();
         shader.Unbind();
 
+        Renderer renderer;
 
         ////////////////// Main Loop ///////////////////
 
@@ -105,20 +107,14 @@ int main(void)
         while (!glfwWindowShouldClose(window))
         {
             // Clear
-            GLCall(glClear(GL_COLOR_BUFFER_BIT));
+            renderer.Clear();
 
             //////// Draw Stuff Here ////////////////////////
 
-            // Bind Shader
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
 
-            // Bind VAO
-            vao.Bind();
-            ibo.Bind();
-
-            // Draw
-            GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+            renderer.Draw(vao, ibo, shader);
 
             // Animate Color
             if (r > 1.0f)
