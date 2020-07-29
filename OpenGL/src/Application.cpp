@@ -14,8 +14,10 @@
 #include "Shader.h"
 #include "Texture.h"
 
-// Best Documentation: http://docs.gl
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
+// Best Documentation: http://docs.gl
 
 int main(void)
 {
@@ -34,7 +36,7 @@ int main(void)
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "OpenGL Practice", NULL, NULL);
+    window = glfwCreateWindow(960, 540, "OpenGL Practice", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -53,7 +55,6 @@ int main(void)
     // Output OpenGL info
     std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
 
-    
 
     ///////////////// Graphics Data /////////////////
     /////////////////////////////////////////////////
@@ -62,10 +63,10 @@ int main(void)
     {
         float vertexBufferData[] =
         {
-            -0.5f, -0.5f, 0.0f, 0.0f,
-             0.5f, -0.5f, 1.0f, 0.0f,
-             0.5f,  0.5f, 1.0f, 1.0f,
-            -0.5f,  0.5f, 0.0f, 1.0f
+            200.0f, 200.0f, 0.0f, 0.0f,
+            500.0f, 200.0f, 1.0f, 0.0f,
+            500.0f, 500.0f, 1.0f, 1.0f,
+            200.0f, 500.0f, 0.0f, 1.0f
         };
 
         unsigned int indexBufferData[] = {
@@ -92,8 +93,17 @@ int main(void)
         //// Index Buffer ////
         IndexBuffer ibo(indexBufferData, 6);
 
+        // Projection Matrix
+        glm::mat4 proj = glm::ortho(0.0f, 960.0f, 0.0f, 540.0f, -1.0f, 1.0f);
+        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-400, 0, 0)); // "Camera"
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(200, 200, 0));
+        glm::mat4 mvp = proj * view * model; // Backwards operations because column major memory layout of OpenGL
+
         //// Shader ////
         Shader shader("res/shaders/BasicShader.Shader");
+        shader.Bind();
+        shader.SetUniform1i("u_Texture", 0);
+        shader.SetUniformMat4f("u_MVP", mvp);
 
         // Texture
         Texture texture("res/textures/hk.png");
@@ -123,7 +133,6 @@ int main(void)
 
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
-            shader.SetUniform1i("u_Texture", 0);
 
             renderer.Draw(vao, ibo, shader);
 
