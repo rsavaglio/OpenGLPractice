@@ -17,6 +17,10 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
+
 // Best Documentation: http://docs.gl
 
 int main(void)
@@ -63,10 +67,10 @@ int main(void)
     {
         float vertexBufferData[] =
         {
-            200.0f, 200.0f, 0.0f, 0.0f,
-            500.0f, 200.0f, 1.0f, 0.0f,
-            500.0f, 500.0f, 1.0f, 1.0f,
-            200.0f, 500.0f, 0.0f, 1.0f
+              0.0f,   0.0f, 0.0f, 0.0f,
+            800.0f,   0.0f, 1.0f, 0.0f,
+            800.0f, 450.0f, 1.0f, 1.0f,
+              0.0f, 450.0f, 0.0f, 1.0f
         };
 
         unsigned int indexBufferData[] = {
@@ -93,17 +97,15 @@ int main(void)
         //// Index Buffer ////
         IndexBuffer ibo(indexBufferData, 6);
 
-        // Projection Matrix
+        // MVP
         glm::mat4 proj = glm::ortho(0.0f, 960.0f, 0.0f, 540.0f, -1.0f, 1.0f);
-        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-400, 0, 0)); // "Camera"
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(200, 200, 0));
-        glm::mat4 mvp = proj * view * model; // Backwards operations because column major memory layout of OpenGL
+        glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)); // "Camera"
+        
 
         //// Shader ////
         Shader shader("res/shaders/BasicShader.Shader");
         shader.Bind();
         shader.SetUniform1i("u_Texture", 0);
-        shader.SetUniformMat4f("u_MVP", mvp);
 
         // Texture
         Texture texture("res/textures/hk.png");
@@ -117,32 +119,60 @@ int main(void)
         shader.Unbind();
 
         Renderer renderer;
+        
+        //// ImGui ////
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        ImGui::StyleColorsDark();
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
 
         ////////////////// Main Loop ///////////////////
 
-        // Color Animator
-        float r = 0.0f;
-        float increment = 0.05f;
+        // ImGui
+        bool show_demo_window = true;
+        bool show_another_window = false;
+        
+        // Variables
+        glm::vec4 tintColor(0);
+        glm::vec3 translation(0);
 
         while (!glfwWindowShouldClose(window))
         {
             // Clear
             renderer.Clear();
 
+            // ImGui New Frame
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            {
+                ImGui::Begin("Debug");                          // Create a window called "Hello, world!" and append into it.
+
+                ImGui::SliderFloat3("float", &translation.x, 0.0f, 960.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+                ImGui::ColorEdit3("Tint", (float*)&tintColor); // Edit 3 floats representing a color
+
+                ImGui::End();
+            }
+
+            // Calculations
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
+            glm::mat4 mvp = proj * view * model;
+
             //////// Draw Stuff Here ////////////////////////
 
+            // Hollow Knight
             shader.Bind();
-            shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
-
+            shader.SetUniform4f("u_Color", tintColor);
+            shader.SetUniformMat4f("u_MVP", mvp);
             renderer.Draw(vao, ibo, shader);
 
-            // Animate Color
-            if (r > 1.0f)
-                increment = -0.05f;
-            else if (r < 0.0f)
-                increment = 0.05f;
-
-            r += increment;
+            // ImGui
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             /////////////////////////////////////////////////
 
@@ -154,6 +184,9 @@ int main(void)
 
         }
     }
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     glfwTerminate();
     return 0;
