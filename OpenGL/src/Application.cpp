@@ -12,6 +12,7 @@
 #include "IndexBuffer.h"
 #include "VertexArray.h"
 #include "Shader.h"
+#include "Texture.h"
 
 // Best Documentation: http://docs.gl
 
@@ -61,10 +62,10 @@ int main(void)
     {
         float vertexBufferData[] =
         {
-            -0.5f, -0.5f,
-             0.5f, -0.5f,
-             0.5f,  0.5f,
-            -0.5f, 0.5f,
+            -0.5f, -0.5f, 0.0f, 0.0f,
+             0.5f, -0.5f, 1.0f, 0.0f,
+             0.5f,  0.5f, 1.0f, 1.0f,
+            -0.5f,  0.5f, 0.0f, 1.0f
         };
 
         unsigned int indexBufferData[] = {
@@ -72,12 +73,17 @@ int main(void)
             2, 3, 0
         };
 
+        // Blending for transperency
+        GLCall(glEnable(GL_BLEND));
+        GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
         //// Vertex Array and Buffer Objects ////
-        VertexBuffer vbo(vertexBufferData, 4 * 2 * sizeof(float));
+        VertexBuffer vbo(vertexBufferData, 4 * 4 * sizeof(float));
         VertexArray vao;
 
         // Each vertex is 2 floats
         VertexBufferLayout layout;
+        layout.Push<float>(2);
         layout.Push<float>(2);
 
         // Add buffer and layout to vbo
@@ -88,6 +94,10 @@ int main(void)
 
         //// Shader ////
         Shader shader("res/shaders/BasicShader.Shader");
+
+        // Texture
+        Texture texture("res/textures/hk.png");
+        texture.Bind();
 
 
         // Undbind everything
@@ -113,6 +123,7 @@ int main(void)
 
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
+            shader.SetUniform1i("u_Texture", 0);
 
             renderer.Draw(vao, ibo, shader);
 
