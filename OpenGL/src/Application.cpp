@@ -67,16 +67,21 @@ int main(void)
     {
         float vertexBufferData[] =
         {
-              0.0f,   0.0f, 0.0f, 0.0f,
-            800.0f,   0.0f, 1.0f, 0.0f,
-            800.0f, 450.0f, 1.0f, 1.0f,
-              0.0f, 450.0f, 0.0f, 1.0f
+           -400.0f,-225.0f, 0.0f, 0.0f,
+            400.0f,-225.0f, 1.0f, 0.0f,
+            400.0f, 225.0f, 1.0f, 1.0f,
+           -400.0f, 225.0f, 0.0f, 1.0f
         };
 
         unsigned int indexBufferData[] = {
             0, 1, 2,
             2, 3, 0
         };
+
+        // Each vertex is 2 floats
+        VertexBufferLayout layout;
+        layout.Push<float>(2);
+        layout.Push<float>(2);
 
         // Blending for transperency
         GLCall(glEnable(GL_BLEND));
@@ -86,13 +91,8 @@ int main(void)
         VertexBuffer vbo(vertexBufferData, 4 * 4 * sizeof(float));
         VertexArray vao;
 
-        // Each vertex is 2 floats
-        VertexBufferLayout layout;
-        layout.Push<float>(2);
-        layout.Push<float>(2);
-
-        // Add buffer and layout to vbo
         vao.AddBuffer(vbo, layout);
+
 
         //// Index Buffer ////
         IndexBuffer ibo(indexBufferData, 6);
@@ -130,14 +130,11 @@ int main(void)
         ImGui_ImplOpenGL3_Init((char*)glGetString(GL_NUM_SHADING_LANGUAGE_VERSIONS));
 
         ////////////////// Main Loop ///////////////////
-
-        // ImGui
-        bool show_demo_window = true;
-        bool show_another_window = false;
         
         // Variables
         glm::vec4 tintColor(0);
         glm::vec3 translation(0);
+        glm::vec3 translation2(100, 100 ,0);
 
         while (!glfwWindowShouldClose(window))
         {
@@ -149,32 +146,44 @@ int main(void)
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            {
-                ImGui::Begin("Debug");                          // Create a window called "Hello, world!" and append into it.
 
-                ImGui::SliderFloat3("float", &translation.x, 0.0f, 960.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-                ImGui::ColorEdit3("Tint", (float*)&tintColor); // Edit 3 floats representing a color
+
+            //////// Draw Stuff Here ////////////////////////
+
+            {
+                ImGui::Begin("Debug");
+
+                ImGui::SliderFloat3("Pic 1", &translation.x, 0.0f, 960.0f);
+                ImGui::SliderFloat3("Pic 2", &translation2.x, 0.0f, 960.0f);
+                ImGui::ColorEdit3("Tint", (float*)&tintColor);
 
                 ImGui::End();
             }
 
-            // Calculations
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
-            glm::mat4 mvp = proj * view * model;
-
-            //////// Draw Stuff Here ////////////////////////
-
             // Hollow Knight
             shader.Bind();
             shader.SetUniform4f("u_Color", tintColor);
-            shader.SetUniformMat4f("u_MVP", mvp);
-            renderer.Draw(vao, ibo, shader);
+
+            {
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
+                glm::mat4 mvp = proj * view * model;
+                shader.SetUniformMat4f("u_MVP", mvp);
+                renderer.Draw(vao, ibo, shader);
+            }
+
+            {
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), translation2);
+                glm::mat4 mvp = proj * view * model;
+                shader.SetUniformMat4f("u_MVP", mvp);
+                renderer.Draw(vao, ibo, shader);
+            }
+
+
+            /////////////////////////////////////////////////
 
             // ImGui
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-            /////////////////////////////////////////////////
 
             // Swap Buffers
             glfwSwapBuffers(window);
